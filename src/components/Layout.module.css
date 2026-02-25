@@ -1,0 +1,102 @@
+.appShell {
+  max-width: 420px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  min-height: 100vh;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.04);
+}
+
+.appContent {
+  padding-bottom: 72px; /* space for fixed footer */
+}
+
+.stickyHeader {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: #ffffff;
+}
+
+.topNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e3e3e3;
+  font-size: 12px;
+}
+
+.topNavBrand {
+  font-weight: 600;
+  color: #537b35;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tabBar {
+  display: flex;
+  gap: 16px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid #e3e3e3;
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.tab {
+  padding-bottom: 8px;
+  white-space: nowrap;
+  color: #4d4d4d;
+}
+
+.tabActive {
+  border-bottom: 2px solid #4d4d4d;
+  font-weight: 600;
+}
+
+.pageHeader {
+  padding: 16px;
+  text-align: center;
+  border-bottom: 1px solid #e3e3e3;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pageSubtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #666666;
+}
+
+.footerBar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  max-width: 420px;
+  padding: 8px 16px 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.primaryButton {
+  width: 100%;
+  border: none;
+  border-radius: 2px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  background-color: #4d4d4d;
+  color: #ffffff;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+}
+

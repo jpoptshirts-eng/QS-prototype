@@ -1,0 +1,4 @@
+Always verify the location of package.json before running terminal commands. If the project is in a sub-folder, cd into it before running npm commands.
+
+Always verify the location of package.json before running terminal commands. If the project is in a sub-folder, cd into it before running npm commands.
+

@@ -1,0 +1,60 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+    sans-serif;
+  background-color: #fff;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .qs-product-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    justify-content: start !important;
+    gap: 16px !important;
+  }
+  .qs-list-cards {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .qs-fav-cards {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .qs-product-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+  }
+  .qs-list-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .qs-fav-cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  .qs-list-cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .qs-fav-cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}

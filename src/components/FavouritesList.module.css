@@ -1,0 +1,75 @@
+.wrapper {
+  padding: 0 16px 16px;
+}
+
+.sectionHeader {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.filterRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.filterButton {
+  border-radius: 2px;
+  border: 1px solid #d0d0d0;
+  padding: 6px 10px;
+  font-size: 13px;
+  background-color: #ffffff;
+}
+
+.sortRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d0d0d0;
+  background-color: #f5f5f5;
+}
+
+.categoryHeading {
+  margin-top: 8px;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.favouriteCard {
+  padding: 8px 0;
+  border-bottom: 1px solid #e3e3e3;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.favInfo {
+  font-size: 13px;
+}
+
+.favName {
+  margin-bottom: 2px;
+}
+
+.favMeta {
+  font-size: 12px;
+  color: #777777;
+}
+
+.favPrice {
+  font-size: 14px;
+  font-weight: 600;
+}
+

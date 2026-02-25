@@ -1,0 +1,194 @@
+.statsBar {
+  position: sticky;
+  top: 96px; /* below nav + page header */
+  z-index: 15;
+  background-color: #ffffff;
+  border-bottom: 1px solid #e3e3e3;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.statsLabel {
+  font-size: 14px;
+}
+
+.statsEmphasis {
+  font-weight: 600;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 4px;
+}
+
+.toggleButton {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  border-radius: 2px;
+  border: 1px solid #d0d0d0;
+  background-color: #ffffff;
+  cursor: pointer;
+}
+
+.toggleButtonActive {
+  background-color: #4d4d4d;
+  color: #ffffff;
+  border-color: #4d4d4d;
+}
+
+.feed {
+  padding: 8px 16px 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 8px;
+}
+
+.gridItem {
+  position: relative;
+  padding: 8px 4px 6px;
+  border-radius: 3px;
+  border: 1px solid #e3e3e3;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gridImage {
+  max-width: 64px;
+  max-height: 70px;
+  object-fit: contain;
+}
+
+.gridName {
+  margin-top: 4px;
+  font-size: 11px;
+  text-align: center;
+  color: #4d4d4d;
+}
+
+.gridWeight {
+  font-size: 11px;
+  color: #888888;
+}
+
+.gridBadge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background-color: #537b35;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.gridBadgeZero {
+  background-color: #cccccc;
+}
+
+.gridQuantityTap {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #4d4d4d;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 3px;
+  border: 1px solid #e3e3e3;
+  background-color: #ffffff;
+}
+
+.listImageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.listImage {
+  max-width: 60px;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+.listContent {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.listTitle {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.listMeta {
+  font-size: 12px;
+  color: #777777;
+  margin-bottom: 6px;
+}
+
+.listPriceRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.listPrice {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #c8c8c8;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.stepperButton {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background-color: #f5f5f5;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.stepperValue {
+  min-width: 32px;
+  text-align: center;
+  font-size: 14px;
+}
+
