@@ -26,11 +26,6 @@ html, body {
     justify-content: start !important;
     gap: 16px !important;
   }
-  .qs-list-cards {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
-  }
   .qs-fav-cards {
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
@@ -42,18 +37,12 @@ html, body {
   .qs-product-grid {
     grid-template-columns: repeat(6, 1fr) !important;
   }
-  .qs-list-cards {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
   .qs-fav-cards {
     grid-template-columns: repeat(3, 1fr) !important;
   }
 }
 
 @media (min-width: 1280px) {
-  .qs-list-cards {
-    grid-template-columns: repeat(3, 1fr) !important;
-  }
   .qs-fav-cards {
     grid-template-columns: repeat(3, 1fr) !important;
   }

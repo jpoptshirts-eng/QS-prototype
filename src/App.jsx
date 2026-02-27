@@ -21,6 +21,12 @@ const SCORE_THRESHOLD = 0.6;
 const HOUSEHOLD_CATEGORIES = ["non food", "health & beauty"];
 
 function mapRow(row) {
+  const rawType = (row.Type || "").toString().toLowerCase();
+  const type =
+    rawType === "single" || rawType === "double" || rawType === "standard"
+      ? rawType
+      : "standard";
+
   return {
     id: row.item_id || row.Order,
     name: row.Name,
@@ -33,6 +39,8 @@ function mapRow(row) {
     offers: row.Offers || "",
     order: row.Order,
     score: Number(row.score) || 0,
+    type,
+    grouping: row.Grouping != null ? String(row.Grouping) : null,
   };
 }
 
@@ -47,6 +55,7 @@ export default function App() {
   const [offersOnlyFood, setOffersOnlyFood] = useState(false);
   const [offersOnlyHousehold, setOffersOnlyHousehold] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState("trolley");
+  const [expandedGroups, setExpandedGroups] = useState({});
   const scrollAttemptRef = useRef(null);
   const carouselRef = useRef(null);
   const ctaTimerRef = useRef(null);
@@ -116,6 +125,25 @@ export default function App() {
 
   const foodDrinkVisible = foodDrinkFiltered;
   const householdVisible = householdFiltered;
+
+  const buildGroupMeta = (arr) => {
+    const groups = {};
+    arr.forEach((item) => {
+      const key = item.grouping;
+      const type = (item.type || "standard").toLowerCase();
+      if (!key || (type !== "single" && type !== "double")) return;
+      if (!groups[key]) groups[key] = { type, items: [] };
+      groups[key].items.push(item);
+    });
+    Object.values(groups).forEach((g) => {
+      g.items.sort((a, b) => (a.order || 0) - (b.order || 0));
+      g.primaryId = g.items[0].id;
+    });
+    return groups;
+  };
+
+  const foodDrinkGroups = buildGroupMeta(foodDrinkVisible);
+  const householdGroups = buildGroupMeta(householdVisible);
 
   const visibleItems = quickShopItems.filter((i) => !isInTrolley(i));
 
@@ -218,6 +246,10 @@ export default function App() {
     setView("list");
     setPage("quickshop");
     window.scrollTo(0, 0);
+  };
+
+  const toggleGroupExpanded = (groupKey) => {
+    setExpandedGroups((prev) => ({ ...prev, [groupKey]: !prev[groupKey] }));
   };
 
   const navigateToGridView = () => {
@@ -1702,151 +1734,380 @@ export default function App() {
 
               <div className="qs-list-cards" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {foodDrinkVisible.map((item) => {
-                  const added = isInTrolley(item);
+                  const groupKey = item.grouping;
+                  const group = groupKey ? foodDrinkGroups[groupKey] : null;
+
+                  if (group && group.primaryId !== item.id) {
+                    return null;
+                  }
+
+                  const groupedItems = group ? group.items : [item];
+                  const type = group ? group.type : "standard";
+                  const isExpanded = groupKey ? !!expandedGroups[groupKey] : false;
+
+                  const collapsedVisibleCount = group
+                    ? type === "double"
+                      ? 2
+                      : 1
+                    : 0;
+                  const itemsToRender = !group
+                    ? [item]
+                    : isExpanded
+                      ? groupedItems
+                      : groupedItems.slice(0, collapsedVisibleCount);
+                  const totalCount = group ? groupedItems.length : 0;
+                  const moreCount = group ? Math.max(totalCount - collapsedVisibleCount, 0) : 0;
+                  const canToggle = group && moreCount > 0;
+
                   return (
-                  <div
-                    key={item.id}
-                    style={{
-                      backgroundColor: "#fff",
-                      position: "relative",
-                      overflow: "hidden",
-                      ...(added
-                        ? {
-                            borderTop: `2px solid ${successGreen}`,
-                            borderLeft: `2px solid ${successGreen}`,
-                            borderRight: `2px solid ${successGreen}`,
-                            borderBottom: `4px solid ${successGreen}`,
-                          }
-                        : { border: `1px solid ${oysterGrey}` }),
-                    }}
-                  >
-                    {added && (
-                      <div style={{
-                        position: "absolute", top: -2, left: -2, right: -2, zIndex: 2,
-                        backgroundColor: "#f1f8e8",
-                        borderTop: `2px solid ${successGreen}`,
-                        padding: "7px 12px 7px 14px",
-                      }}>
-                        <span style={{ fontSize: 16, fontWeight: 500, color: squidInk, lineHeight: "24px" }}>
-                          {item.quantity} in trolley
-                        </span>
-                      </div>
-                    )}
-                    <div style={{ display: "flex", gap: 16, padding: "16px", paddingTop: added ? 36 : 16 }}>
-                      <div
-                        style={{
-                          width: 85, flexShrink: 0,
-                          display: "flex", flexDirection: "column",
-                          justifyContent: "space-between", alignSelf: "stretch",
-                          position: "relative",
-                        }}
-                      >
-                        {item.offers && !added && (
-                          <div style={{
-                            position: "absolute", top: 0, left: 0, zIndex: 1,
-                            backgroundColor: "#c00", color: "#fff",
-                            fontSize: 12, fontWeight: 600, lineHeight: "20px",
-                            padding: "0 8px", borderRadius: 2,
-                          }}>
-                            Offer
-                          </div>
-                        )}
-                        <img
-                          src={item.image} alt={item.name}
-                          style={{ width: 85, height: 85, objectFit: "contain", pointerEvents: "none" }}
-                        />
-                        <div style={{ height: 12 }} />
-                        <div>
-                          <div style={{ fontSize: 20, fontWeight: 500, color: squidInk, lineHeight: "28px" }}>
-                            £{item.price.toFixed(2)}
-                          </div>
-                          <div style={{ fontSize: 16, fontWeight: 300, color: squidInk, lineHeight: "24px" }}>
-                            {item.ppu || item.weight}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between", alignSelf: "stretch" }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          <div style={{ paddingRight: 20 }}>
-                            <div style={{
-                              fontSize: 16, fontWeight: 500, color: squidInk,
-                              lineHeight: "24px", height: 48, overflow: "hidden",
-                              textOverflow: "ellipsis", display: "-webkit-box",
-                              WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                            }}>
-                              {item.name}
-                            </div>
-                            <div style={{ fontSize: 16, fontWeight: 300, color: squidInk, lineHeight: "24px" }}>
-                              Typical weight {item.weight}
-                            </div>
-                          </div>
-                          {item.offers && (
-                            <div style={{
-                              fontSize: 16, fontWeight: 500, color: "#a6192e", lineHeight: "24px",
-                              textDecoration: "underline", whiteSpace: "nowrap",
-                              overflow: "hidden", textOverflow: "ellipsis", height: 24,
-                            }}>
-                              {item.offers}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ paddingTop: 12 }}>
-                          {added ? (
-                            <div style={{ display: "flex", gap: 8, alignItems: "stretch", width: "100%" }}>
-                              <div style={{
-                                flex: 1, height: 40,
-                                border: `1px solid ${squidInk}`,
-                                backgroundColor: "#fff",
-                                display: "flex", alignItems: "center",
-                                padding: "8px 12px",
-                                fontSize: 16, fontWeight: 500, color: squidInk,
-                              }}>
-                                {item.quantity}
+                    <div
+                      key={item.id}
+                      style={{
+                        backgroundColor: "#fff",
+                        position: "relative",
+                        overflow: "hidden",
+                        border: `1px solid ${oysterGrey}`,
+                      }}
+                    >
+                      {itemsToRender.map((it) => {
+                        const added = isInTrolley(it);
+                        return (
+                          <div
+                            key={it.id}
+                            style={{
+                              position: "relative",
+                              ...(added
+                                ? {
+                                    borderTop: `2px solid ${successGreen}`,
+                                    borderLeft: `2px solid ${successGreen}`,
+                                    borderRight: `2px solid ${successGreen}`,
+                                    borderBottom: `4px solid ${successGreen}`,
+                                  }
+                                : {}),
+                            }}
+                          >
+                            {added && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: -2,
+                                  left: -2,
+                                  right: -2,
+                                  zIndex: 2,
+                                  backgroundColor: "#f1f8e8",
+                                  borderTop: `2px solid ${successGreen}`,
+                                  padding: "7px 12px 7px 14px",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    lineHeight: "24px",
+                                  }}
+                                >
+                                  {it.quantity} in trolley
+                                </span>
                               </div>
-                              <button type="button" onClick={() => updateBelowQty(item.id, item.quantity - 1)}
-                                style={{
-                                  height: 40, border: "none", backgroundColor: waitroseGrey,
-                                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                                  cursor: "pointer", padding: "7px 20px", flexShrink: 0,
-                                }}>
-                                <svg width="16" height="2" viewBox="0 0 16 2" fill="none">
-                                  <rect width="16" height="2" rx="0.5" fill="white" />
-                                </svg>
-                              </button>
-                              <button type="button" onClick={() => updateBelowQty(item.id, item.quantity + 1)}
-                                style={{
-                                  height: 40, border: "none", backgroundColor: waitroseGrey,
-                                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
-                                  cursor: "pointer", padding: "7px 20px", flexShrink: 0,
-                                }}>
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                  <rect x="7" y="0" width="2" height="16" rx="0.5" fill="white" />
-                                  <rect x="0" y="7" width="16" height="2" rx="0.5" fill="white" />
-                                </svg>
-                              </button>
-                            </div>
-                          ) : (
-                            <button type="button" onClick={() => addSingleToTrolley(item.id)}
+                            )}
+                            <div
                               style={{
-                                width: "100%", height: 40, border: `1px solid ${squidInk}`,
-                                backgroundColor: "#fff", fontSize: 16, fontWeight: 500,
-                                color: squidInk, cursor: "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                              }}>
-                              Add
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                                display: "flex",
+                                gap: 16,
+                                padding: "16px",
+                                paddingTop: added ? 36 : 16,
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: 85,
+                                  flexShrink: 0,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  justifyContent: "space-between",
+                                  alignSelf: "stretch",
+                                  position: "relative",
+                                }}
+                              >
+                                {it.offers && !added && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      top: 0,
+                                      left: 0,
+                                      zIndex: 1,
+                                      backgroundColor: "#c00",
+                                      color: "#fff",
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      lineHeight: "20px",
+                                      padding: "0 8px",
+                                      borderRadius: 2,
+                                    }}
+                                  >
+                                    Offer
+                                  </div>
+                                )}
+                                <img
+                                  src={it.image}
+                                  alt={it.name}
+                                  style={{
+                                    width: 85,
+                                    height: 85,
+                                    objectFit: "contain",
+                                    pointerEvents: "none",
+                                  }}
+                                />
+                                <div style={{ height: 12 }} />
+                                <div>
+                                  <div
+                                    style={{
+                                      fontSize: 20,
+                                      fontWeight: 500,
+                                      color: squidInk,
+                                      lineHeight: "28px",
+                                    }}
+                                  >
+                                    £{it.price.toFixed(2)}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 16,
+                                      fontWeight: 300,
+                                      color: squidInk,
+                                      lineHeight: "24px",
+                                    }}
+                                  >
+                                    {it.ppu || it.weight}
+                                  </div>
+                                </div>
+                              </div>
+                              <div
+                                style={{
+                                  flex: 1,
+                                  minWidth: 0,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  justifyContent: "space-between",
+                                  alignSelf: "stretch",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 8,
+                                  }}
+                                >
+                                  <div style={{ paddingRight: 20 }}>
+                                    <div
+                                      style={{
+                                        fontSize: 16,
+                                        fontWeight: 500,
+                                        color: squidInk,
+                                        lineHeight: "24px",
+                                        height: 48,
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
+                                      }}
+                                    >
+                                      {it.name}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 16,
+                                        fontWeight: 300,
+                                        color: squidInk,
+                                        lineHeight: "24px",
+                                      }}
+                                    >
+                                      Typical weight {it.weight}
+                                    </div>
+                                  </div>
+                                  {it.offers && (
+                                    <div
+                                      style={{
+                                        fontSize: 16,
+                                        fontWeight: 500,
+                                        color: "#a6192e",
+                                        lineHeight: "24px",
+                                        textDecoration: "underline",
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        height: 24,
+                                      }}
+                                    >
+                                      {it.offers}
+                                    </div>
+                                  )}
+                                </div>
+                                <div style={{ paddingTop: 12 }}>
+                                  {added ? (
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        gap: 8,
+                                        alignItems: "stretch",
+                                        width: "100%",
+                                      }}
+                                    >
+                                      <div
+                                        style={{
+                                          flex: 1,
+                                          height: 40,
+                                          border: `1px solid ${squidInk}`,
+                                          backgroundColor: "#fff",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          padding: "8px 12px",
+                                          fontSize: 16,
+                                          fontWeight: 500,
+                                          color: squidInk,
+                                        }}
+                                      >
+                                        {it.quantity}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updateBelowQty(it.id, it.quantity - 1)
+                                        }
+                                        style={{
+                                          height: 40,
+                                          border: "none",
+                                          backgroundColor: waitroseGrey,
+                                          color: "#fff",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          cursor: "pointer",
+                                          padding: "7px 20px",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        <svg
+                                          width="16"
+                                          height="2"
+                                          viewBox="0 0 16 2"
+                                          fill="none"
+                                        >
+                                          <rect
+                                            width="16"
+                                            height="2"
+                                            rx="0.5"
+                                            fill="white"
+                                          />
+                                        </svg>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updateBelowQty(it.id, it.quantity + 1)
+                                        }
+                                        style={{
+                                          height: 40,
+                                          border: "none",
+                                          backgroundColor: waitroseGrey,
+                                          color: "#fff",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          cursor: "pointer",
+                                          padding: "7px 20px",
+                                          flexShrink: 0,
+                                        }}
+                                      >
+                                        <svg
+                                          width="16"
+                                          height="16"
+                                          viewBox="0 0 16 16"
+                                          fill="none"
+                                        >
+                                          <rect
+                                            x="7"
+                                            y="0"
+                                            width="2"
+                                            height="16"
+                                            rx="0.5"
+                                            fill="white"
+                                          />
+                                          <rect
+                                            x="0"
+                                            y="7"
+                                            width="16"
+                                            height="2"
+                                            rx="0.5"
+                                            fill="white"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => addSingleToTrolley(it.id)}
+                                      style={{
+                                        width: "100%",
+                                        height: 40,
+                                        border: `1px solid ${squidInk}`,
+                                        backgroundColor: "#fff",
+                                        fontSize: 16,
+                                        fontWeight: 500,
+                                        color: squidInk,
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      Add
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {canToggle && (
+                        <button
+                          type="button"
+                          onClick={() => toggleGroupExpanded(groupKey)}
+                          style={{
+                            width: "100%",
+                            border: "none",
+                            backgroundColor: "#fff",
+                            borderTop: `1px solid ${oysterGrey}`,
+                            padding: "8px 0 8px 16px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            cursor: "pointer",
+                            fontSize: 14,
+                            color: squidInk,
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-block",
+                              transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                              transition: "transform 0.2s ease",
+                            }}
+                          >
+                            ▾
+                          </span>
+                          {isExpanded
+                            ? "View less"
+                            : `View ${moreCount} more item${moreCount === 1 ? "" : "s"}`}
+                        </button>
+                      )}
                     </div>
-                    {!added && (
-                      <div style={{ position: "absolute", top: 2, right: 2, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                        <svg width="20" height="18" viewBox="0 0 20 18" fill="none">
-                          <path d="M10 17.07L8.58 15.78C3.4 11.07 0 8.01 0 4.31C0 1.25 2.42 -0.09 5 0.81C6.54 1.34 7.67 2.38 8.58 3.6L10 5.5L11.42 3.6C12.33 2.38 13.46 1.34 15 0.81C17.58 -0.09 20 1.25 20 4.31C20 8.01 16.6 11.07 11.42 15.78L10 17.07Z" stroke={squidInk} strokeWidth="1.5" fill="none" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
                   );
                 })}
               </div>
