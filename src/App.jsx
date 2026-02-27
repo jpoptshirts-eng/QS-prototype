@@ -145,6 +145,17 @@ export default function App() {
   const foodDrinkGroups = buildGroupMeta(foodDrinkVisible);
   const householdGroups = buildGroupMeta(householdVisible);
 
+  const currentJourneyStep =
+    page === "quickshop"
+      ? 1
+      : page === "fooddrink"
+      ? 2
+      : page === "household"
+      ? 3
+      : page === "inspiration"
+      ? 4
+      : 0;
+
   const visibleItems = quickShopItems.filter((i) => !isInTrolley(i));
 
   const trolleyCount = Object.values(trolley).reduce((sum, qty) => sum + qty, 0);
@@ -475,6 +486,92 @@ export default function App() {
             <span style={{ fontSize: 12, color: squidInk }}>›</span>
           </div>
         </div>
+
+        {/* ── Journey progress indicator ── */}
+        {page !== "favourites" && currentJourneyStep > 0 && (
+          <div
+            style={{
+              padding: "8px 16px 4px",
+              backgroundColor: "#fff",
+              borderBottom: `1px solid ${oysterGrey}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center" }}>
+              {[
+                { label: "Top regulars" },
+                { label: "Food & drink" },
+                { label: "Household" },
+                { label: "Meals & ideas" },
+              ].map((step, index) => {
+                const stepNumber = index + 1;
+                const isComplete = stepNumber < currentJourneyStep;
+                const isCurrent = stepNumber === currentJourneyStep;
+
+                return (
+                  <React.Fragment key={step.label}>
+                    {index > 0 && (
+                      <div
+                        style={{
+                          flex: 1,
+                          height: 2,
+                          backgroundColor: stepNumber <= currentJourneyStep ? green : oysterGrey,
+                          margin: "0 4px",
+                        }}
+                      />
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: isComplete
+                            ? successGreen
+                            : isCurrent
+                            ? squidInk
+                            : "#fff",
+                          border: `2px solid ${
+                            isComplete ? successGreen : isCurrent ? squidInk : oysterGrey
+                          }`,
+                          color: isComplete || isCurrent ? "#fff" : squidInk,
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {isComplete ? (
+                          <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                            <path
+                              d="M3 8.5L6.5 12L13 4"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        ) : (
+                          stepNumber
+                        )}
+                      </div>
+                      <span
+                        style={{
+                          marginTop: 4,
+                          fontSize: 11,
+                          color: stepNumber <= currentJourneyStep ? squidInk : waitroseGrey,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ═══════════════ FAVOURITES PAGE ═══════════════ */}
         {page === "favourites" && (
@@ -1088,7 +1185,7 @@ export default function App() {
                   color: squidInk,
                 }}
               >
-                Quick Shop
+                Top regulars
               </h1>
               <div
                 style={{
@@ -2385,8 +2482,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setPage("trolley");
-                  setCheckoutStep("trolley");
+                  setPage("inspiration");
                   window.scrollTo(0, 0);
                 }}
                 style={{
@@ -2401,8 +2497,86 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                Review trolley
+                Next step
               </button>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════ MEALS & IDEAS (STEP 4) ═══════════════ */}
+        {page === "inspiration" && (
+          <>
+            <div
+              style={{
+                padding: "24px 16px 0",
+                textAlign: "center",
+                backgroundColor: "#fff",
+              }}
+            >
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 18,
+                  fontWeight: 500,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: squidInk,
+                }}
+              >
+                Meals & ideas
+              </h1>
+              <div
+                style={{
+                  width: 40,
+                  height: 2,
+                  backgroundColor: squidInk,
+                  margin: "16px auto",
+                }}
+              />
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 16,
+                  fontWeight: 400,
+                  color: squidInk,
+                  lineHeight: "24px",
+                }}
+              >
+                This step will surface personalised inspiration based on the
+                items in your trolley.
+              </p>
+            </div>
+
+            <div
+              style={{
+                padding: "32px 16px 80px",
+                textAlign: "center",
+                backgroundColor: "#fff",
+              }}
+            >
+              <p
+                style={{
+                  margin: "0 0 8px",
+                  fontSize: 16,
+                  fontWeight: 400,
+                  color: waitroseGrey,
+                  lineHeight: "24px",
+                }}
+              >
+                Prototype note
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  color: waitroseGrey,
+                  lineHeight: "20px",
+                }}
+              >
+                For now this screen is a placeholder. In a future iteration it
+                could show recipe ideas, bundles and inspiration driven from the
+                current trolley and favourites.
+              </p>
             </div>
           </>
         )}
