@@ -41,6 +41,8 @@ function mapRow(row) {
     score: Number(row.score) || 0,
     type,
     grouping: row.Grouping != null ? String(row.Grouping) : null,
+    model: (row.Model || "BBM").toString().toUpperCase(),
+    productType: row["Product Type"] || "",
   };
 }
 
@@ -78,12 +80,19 @@ export default function App() {
       const { data, error } = await supabase
         .from("POP529")
         .select("*")
-        .eq("Model", "BBM")
         .order("Order", { ascending: true });
 
       if (error || !data || data.length === 0) {
         if (error) console.error("Supabase error:", error.message);
-        setItems(productsJsonFallback);
+        setItems(
+          productsJsonFallback.map((p) => ({
+            ...p,
+            model: (p.model || "BBM").toString().toUpperCase(),
+            productType: p.productType || "",
+            type: (p.type || "standard").toString().toLowerCase(),
+            grouping: p.grouping != null ? String(p.grouping) : null,
+          }))
+        );
       } else {
         setItems(
           data.map(mapRow).map((item) => ({
@@ -107,8 +116,12 @@ export default function App() {
     return trolley[key] !== undefined && trolley[key] >= item.quantity && item.quantity > 0;
   };
 
-  const quickShopItems = items.filter((i) => i.score >= SCORE_THRESHOLD);
-  const belowThreshold = items.filter((i) => i.score < SCORE_THRESHOLD);
+  const quickShopItems = items.filter(
+    (i) => i.model === "BBM" && i.score >= SCORE_THRESHOLD
+  );
+  const belowThreshold = items.filter(
+    (i) => i.model === "BBM" && i.score < SCORE_THRESHOLD
+  );
   const foodDrinkItemsAll = belowThreshold.filter(
     (i) => !HOUSEHOLD_CATEGORIES.includes((i.category || "").toLowerCase())
   );
@@ -125,6 +138,28 @@ export default function App() {
 
   const foodDrinkVisible = foodDrinkFiltered;
   const householdVisible = householdFiltered;
+
+  const csmItems = items.filter((i) => i.model === "CSM");
+  const csmOffersNonAlcohol = csmItems.filter(
+    (item) =>
+      (item.offers || "").toString().trim() !== "" &&
+      (item.productType || "").toLowerCase() !== "alcohol"
+  );
+  const csmAlcohol = csmItems.filter(
+    (item) => (item.productType || "").toLowerCase() === "alcohol"
+  );
+  const csmNo1 = csmItems.filter((item) => {
+    const name = (item.name || "").toLowerCase();
+    return (
+      name.includes("no.1") ||
+      name.includes("no1") ||
+      name.includes("no 1")
+    );
+  });
+  const csmOrganic = csmItems.filter((item) => {
+    const name = (item.name || "").toLowerCase();
+    return name.includes("organic") || name.includes("duchy");
+  });
 
   const buildGroupMeta = (arr) => {
     const groups = {};
@@ -189,6 +224,20 @@ export default function App() {
       prev.map((p) => (String(p.id) === String(id) ? { ...p, quantity: Math.max(p.quantity, 1) } : p))
     );
     setTrolley((prev) => ({ ...prev, [String(id)]: Math.max(prev[String(id)] || 0, 1) }));
+  };
+
+  const addCsmToTrolleyFromCard = (item) => {
+    if (!item || item.id === undefined || item.id === null) return;
+    const key = String(item.id);
+    setTrolley((prevTrolley) => {
+      const nextQty = (prevTrolley[key] || 0) + 1;
+      setItems((prevItems) =>
+        prevItems.map((p) =>
+          String(p.id) === key ? { ...p, quantity: nextQty } : p
+        )
+      );
+      return { ...prevTrolley, [key]: nextQty };
+    });
   };
 
   const updateBelowQty = (id, next) => {
@@ -2533,50 +2582,813 @@ export default function App() {
                   margin: "16px auto",
                 }}
               />
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 16,
-                  fontWeight: 400,
-                  color: squidInk,
-                  lineHeight: "24px",
-                }}
-              >
-                This step will surface personalised inspiration based on the
-                items in your trolley.
-              </p>
+            </div>
+
+            <div style={{ padding: "16px", backgroundColor: "#fff", paddingBottom: 80 }}>
+              {/* Section 1: CSM offers (non alcohol) */}
+              <div style={{ marginBottom: 24 }}>
+                {csmOffersNonAlcohol.length > 0 && (
+                  <>
+                <h2
+                  style={{
+                    margin: "0 0 4px",
+                    fontSize: 18,
+                    fontWeight: 500,
+                    color: "#A6192E",
+                  }}
+                >
+                  Similar items you like on offer
+                </h2>
+                  <div style={{ position: "relative", marginTop: 8 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      overflowX: "auto",
+                      paddingBottom: 12,
+                      scrollSnapType: "x mandatory",
+                    }}
+                  >
+                    {csmOffersNonAlcohol.map((item) => {
+                      const key = String(item.id);
+                      const qty = trolley[key] || 0;
+                      const added = qty > 0;
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            flex: "0 0 auto",
+                            width: 220,
+                            backgroundColor: "#fff",
+                            padding: 12,
+                            scrollSnapAlign: "start",
+                            position: "relative",
+                            ...(added
+                              ? {
+                                  borderTop: `2px solid ${successGreen}`,
+                                  borderLeft: `2px solid ${successGreen}`,
+                                  borderRight: `2px solid ${successGreen}`,
+                                  borderBottom: `4px solid ${successGreen}`,
+                                }
+                              : { border: `1px solid ${oysterGrey}` }),
+                          }}
+                        >
+                          {added && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: -2,
+                                left: -2,
+                                right: -2,
+                                zIndex: 2,
+                                backgroundColor: "#f1f8e8",
+                                borderTop: `2px solid ${successGreen}`,
+                                padding: "5px 10px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 500,
+                                  color: squidInk,
+                                  lineHeight: "20px",
+                                }}
+                              >
+                                {qty} in trolley
+                              </span>
+                            </div>
+                          )}
+                          <div style={{ marginTop: added ? 28 : 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 12,
+                                marginBottom: 8,
+                              }}
+                            >
+                              <div style={{ position: "relative" }}>
+                                {item.offers && !added && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      top: 0,
+                                      left: 0,
+                                      zIndex: 1,
+                                      backgroundColor: "#c00",
+                                      color: "#fff",
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      lineHeight: "20px",
+                                      padding: "0 8px",
+                                      borderRadius: 2,
+                                    }}
+                                  >
+                                    Offer
+                                  </div>
+                                )}
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  style={{
+                                    width: 64,
+                                    height: 64,
+                                    objectFit: "contain",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    lineHeight: "20px",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                  }}
+                                >
+                                  {item.name}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 13,
+                                    color: waitroseGrey,
+                                    lineHeight: "18px",
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {item.weight}
+                                </div>
+                                {item.offers && (
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 500,
+                                      color: "#a6192e",
+                                      lineHeight: "18px",
+                                      textDecoration: "underline",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {item.offers}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ marginBottom: 8 }}>
+                              <div
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: 500,
+                                  color: squidInk,
+                                  lineHeight: "24px",
+                                }}
+                              >
+                                £{item.price.toFixed(2)}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 300,
+                                  color: squidInk,
+                                  lineHeight: "20px",
+                                }}
+                              >
+                                {item.ppu || item.weight}
+                              </div>
+                            </div>
+                            <div>
+                              {added ? (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    alignItems: "stretch",
+                                    width: "100%",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      flex: 1,
+                                      height: 40,
+                                      border: `1px solid ${squidInk}`,
+                                      backgroundColor: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: 16,
+                                      fontWeight: 500,
+                                      color: squidInk,
+                                    }}
+                                  >
+                                    {qty}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateBelowQty(item.id, qty - 1)
+                                    }
+                                    style={{
+                                      height: 40,
+                                      border: "none",
+                                      backgroundColor: waitroseGrey,
+                                      color: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      cursor: "pointer",
+                                      padding: "7px 16px",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <svg
+                                      width="16"
+                                      height="2"
+                                      viewBox="0 0 16 2"
+                                      fill="none"
+                                    >
+                                      <rect
+                                        width="16"
+                                        height="2"
+                                        rx="0.5"
+                                        fill="white"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateBelowQty(item.id, qty + 1)
+                                    }
+                                    style={{
+                                      height: 40,
+                                      border: "none",
+                                      backgroundColor: waitroseGrey,
+                                      color: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      cursor: "pointer",
+                                      padding: "7px 16px",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 16 16"
+                                      fill="none"
+                                    >
+                                      <rect
+                                        x="7"
+                                        y="0"
+                                        width="2"
+                                        height="16"
+                                        rx="0.5"
+                                        fill="white"
+                                      />
+                                      <rect
+                                        x="0"
+                                        y="7"
+                                        width="16"
+                                        height="2"
+                                        rx="0.5"
+                                        fill="white"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => addCsmToTrolleyFromCard(item)}
+                                  style={{
+                                    width: "100%",
+                                    height: 40,
+                                    border: `1px solid ${squidInk}`,
+                                    backgroundColor: "#fff",
+                                    fontSize: 16,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Add
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                </>
+                )}
+              </div>
+
+              {/* Section 2: Alcohol-related ideas */}
+              <div style={{ marginBottom: 24 }}>
+                {csmAlcohol.length > 0 && (
+                  <>
+                <h2
+                  style={{
+                    margin: "0 0 4px",
+                    fontSize: 18,
+                    fontWeight: 500,
+                    color: squidInk,
+                  }}
+                >
+                  Time for a top up?
+                </h2>
+                  <div style={{ position: "relative", marginTop: 8 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      overflowX: "auto",
+                      paddingBottom: 12,
+                      scrollSnapType: "x mandatory",
+                    }}
+                  >
+                    {csmAlcohol.map((item) => {
+                      const key = String(item.id);
+                      const qty = trolley[key] || 0;
+                      const added = qty > 0;
+
+                      return (
+                        <div
+                          key={item.id}
+                          style={{
+                            flex: "0 0 auto",
+                            width: 220,
+                            backgroundColor: "#fff",
+                            padding: 12,
+                            scrollSnapAlign: "start",
+                            position: "relative",
+                            ...(added
+                              ? {
+                                  borderTop: `2px solid ${successGreen}`,
+                                  borderLeft: `2px solid ${successGreen}`,
+                                  borderRight: `2px solid ${successGreen}`,
+                                  borderBottom: `4px solid ${successGreen}`,
+                                }
+                              : { border: `1px solid ${oysterGrey}` }),
+                          }}
+                        >
+                          {added && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: -2,
+                                left: -2,
+                                right: -2,
+                                zIndex: 2,
+                                backgroundColor: "#f1f8e8",
+                                borderTop: `2px solid ${successGreen}`,
+                                padding: "5px 10px",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 500,
+                                  color: squidInk,
+                                  lineHeight: "20px",
+                                }}
+                              >
+                                {qty} in trolley
+                              </span>
+                            </div>
+                          )}
+                          <div style={{ marginTop: added ? 28 : 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 12,
+                                marginBottom: 8,
+                              }}
+                            >
+                              <div style={{ position: "relative" }}>
+                                {item.offers && !added && (
+                                  <div
+                                    style={{
+                                      position: "absolute",
+                                      top: 0,
+                                      left: 0,
+                                      zIndex: 1,
+                                      backgroundColor: "#c00",
+                                      color: "#fff",
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      lineHeight: "20px",
+                                      padding: "0 8px",
+                                      borderRadius: 2,
+                                    }}
+                                  >
+                                    Offer
+                                  </div>
+                                )}
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  style={{
+                                    width: 64,
+                                    height: 64,
+                                    objectFit: "contain",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    lineHeight: "20px",
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                  }}
+                                >
+                                  {item.name}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 13,
+                                    color: waitroseGrey,
+                                    lineHeight: "18px",
+                                    marginTop: 2,
+                                  }}
+                                >
+                                  {item.weight}
+                                </div>
+                                {item.offers && (
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 500,
+                                      color: "#a6192e",
+                                      lineHeight: "18px",
+                                      textDecoration: "underline",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {item.offers}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ marginBottom: 8 }}>
+                              <div
+                                style={{
+                                  fontSize: 16,
+                                  fontWeight: 500,
+                                  color: squidInk,
+                                  lineHeight: "24px",
+                                }}
+                              >
+                                £{item.price.toFixed(2)}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: 14,
+                                  fontWeight: 300,
+                                  color: squidInk,
+                                  lineHeight: "20px",
+                                }}
+                              >
+                                {item.ppu || item.weight}
+                              </div>
+                            </div>
+                            <div>
+                              {added ? (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    alignItems: "stretch",
+                                    width: "100%",
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      flex: 1,
+                                      height: 40,
+                                      border: `1px solid ${squidInk}`,
+                                      backgroundColor: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      fontSize: 16,
+                                      fontWeight: 500,
+                                      color: squidInk,
+                                    }}
+                                  >
+                                    {qty}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateBelowQty(item.id, qty - 1)
+                                    }
+                                    style={{
+                                      height: 40,
+                                      border: "none",
+                                      backgroundColor: waitroseGrey,
+                                      color: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      cursor: "pointer",
+                                      padding: "7px 16px",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <svg
+                                      width="16"
+                                      height="2"
+                                      viewBox="0 0 16 2"
+                                      fill="none"
+                                    >
+                                      <rect
+                                        width="16"
+                                        height="2"
+                                        rx="0.5"
+                                        fill="white"
+                                      />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateBelowQty(item.id, qty + 1)
+                                    }
+                                    style={{
+                                      height: 40,
+                                      border: "none",
+                                      backgroundColor: waitroseGrey,
+                                      color: "#fff",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      cursor: "pointer",
+                                      padding: "7px 16px",
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    <svg
+                                      width="16"
+                                      height="16"
+                                      viewBox="0 0 16 16"
+                                      fill="none"
+                                    >
+                                      <rect
+                                        x="7"
+                                        y="0"
+                                        width="2"
+                                        height="16"
+                                        rx="0.5"
+                                        fill="white"
+                                      />
+                                      <rect
+                                        x="0"
+                                        y="7"
+                                        width="16"
+                                        height="2"
+                                        rx="0.5"
+                                        fill="white"
+                                      />
+                                    </svg>
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => addCsmToTrolleyFromCard(item)}
+                                  style={{
+                                    width: "100%",
+                                    height: 40,
+                                    border: `1px solid ${squidInk}`,
+                                    backgroundColor: "#fff",
+                                    fontSize: 16,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Add
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                </>
+                )}
+              </div>
+
+              {/* Section 3: Other CSM helpers by type (Ready Meals, Herbs and Spices) */}
+              <div style={{ marginBottom: 24 }}>
+                {["Ready Meals", "Herbs and Spices"].map((rawPt) => {
+                    const pt = rawPt;
+                    const itemsForType = csmItems.filter(
+                      (item) =>
+                        (item.productType || "").trim().toLowerCase() ===
+                        rawPt.toLowerCase()
+                    );
+                    if (itemsForType.length === 0) return null;
+                    return (
+                      <div key={pt} style={{ marginBottom: 24 }}>
+                        <h2
+                          style={{
+                            margin: "0 0 4px",
+                            fontSize: 18,
+                            fontWeight: 500,
+                            color: squidInk,
+                          }}
+                        >
+                          {pt === "Ready Meals"
+                            ? "Ready when you're in a hurry"
+                            : pt === "Herbs and Spices"
+                            ? "Spice it up"
+                            : pt}
+                        </h2>
+                        <div style={{ position: "relative", marginTop: 8 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 12,
+                              overflowX: "auto",
+                              paddingBottom: 12,
+                              scrollSnapType: "x mandatory",
+                            }}
+                          >
+                            {itemsForType.map((item) => (
+                              <div
+                                key={item.id}
+                                style={{
+                                  flex: "0 0 auto",
+                                  width: 220,
+                                  border: `1px solid ${oysterGrey}`,
+                                  backgroundColor: "#fff",
+                                  padding: 12,
+                                  scrollSnapAlign: "start",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 12,
+                                    marginBottom: 8,
+                                  }}
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt={item.name}
+                                    style={{
+                                      width: 64,
+                                      height: 64,
+                                      objectFit: "contain",
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div
+                                      style={{
+                                        fontSize: 14,
+                                        fontWeight: 500,
+                                        color: squidInk,
+                                        lineHeight: "20px",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: "vertical",
+                                      }}
+                                    >
+                                      {item.name}
+                                    </div>
+                                    <div
+                                      style={{
+                                        fontSize: 13,
+                                        color: waitroseGrey,
+                                        lineHeight: "18px",
+                                        marginTop: 2,
+                                      }}
+                                    >
+                                      {item.weight}
+                                    </div>
+                            {item.offers && (
+                              <div
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  color: "#a6192e",
+                                  lineHeight: "18px",
+                                  textDecoration: "underline",
+                                  marginTop: 2,
+                                }}
+                              >
+                                {item.offers}
+                              </div>
+                            )}
+                                  </div>
+                                </div>
+                        <div style={{ marginBottom: 8 }}>
+                          <div
+                            style={{
+                              fontSize: 16,
+                              fontWeight: 500,
+                              color: squidInk,
+                              lineHeight: "24px",
+                            }}
+                          >
+                            £{item.price.toFixed(2)}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 300,
+                              color: squidInk,
+                              lineHeight: "20px",
+                            }}
+                          >
+                            {item.ppu || item.weight}
+                          </div>
+                        </div>
+                                <button
+                                  type="button"
+                                  onClick={() => addCsmToTrolleyFromCard(item)}
+                                  style={{
+                                    width: "100%",
+                                    height: 40,
+                                    border: `1px solid ${squidInk}`,
+                                    backgroundColor: "#fff",
+                                    fontSize: 16,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
 
             <div
               style={{
-                padding: "32px 16px 80px",
-                textAlign: "center",
+                position: "fixed",
+                left: "50%",
+                transform: "translateX(-50%)",
+                bottom: 0,
+                width: "100%",
+                maxWidth: 767,
+                padding: "12px 16px",
                 backgroundColor: "#fff",
+                borderTop: `1px solid ${oysterGrey}`,
+                zIndex: 20,
               }}
             >
-              <p
+              <button
+                type="button"
+                onClick={() => {
+                  setPage("trolley");
+                  setCheckoutStep("trolley");
+                  window.scrollTo(0, 0);
+                }}
                 style={{
-                  margin: "0 0 8px",
+                  width: "100%",
+                  height: 48,
+                  border: "none",
+                  backgroundColor: green,
+                  color: "#fff",
                   fontSize: 16,
                   fontWeight: 400,
-                  color: waitroseGrey,
                   lineHeight: "24px",
+                  cursor: "pointer",
                 }}
               >
-                Prototype note
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 14,
-                  color: waitroseGrey,
-                  lineHeight: "20px",
-                }}
-              >
-                For now this screen is a placeholder. In a future iteration it
-                could show recipe ideas, bundles and inspiration driven from the
-                current trolley and favourites.
-              </p>
+                Review trolley
+              </button>
             </div>
           </>
         )}
