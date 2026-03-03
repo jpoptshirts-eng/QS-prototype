@@ -20,6 +20,111 @@ function parsePrice(raw) {
 const SCORE_THRESHOLD = 0.6;
 const HOUSEHOLD_CATEGORIES = ["non food", "health & beauty"];
 
+const EVENT_ITEMS = [
+  {
+    id: "EVT-841909",
+    name: "Ferrero Rocher gift box of chocolates 24 pieces",
+    price: 7.0, // ~£7.00 for 300g at Waitrose [Ferrero Rocher Gift Box 24 Pieces 300g](https://www.waitrose.com/ecom/products/ferrero-rocher-gift-box-of-chocolates-24-pieces/841909-804994-804995)
+    weight: "300g",
+    ppu: "£2.33 per 100g",
+    quantity: 0,
+    image: "https://ecom-su-static-prod.wtrecom.com/images/products/11/LN_841909_BP_11.jpg",
+    category: "Events",
+    offers: "",
+    order: 10001,
+    score: 0,
+    type: "standard",
+    grouping: null,
+    model: "EVT",
+    productType: "Events",
+  },
+  {
+    id: "EVT-969767",
+    name: "Waitrose 4 flower crumpets",
+    price: 1.5, // £1.50 per 4-pack, matching decorative crumpet pricing [Waitrose 4 Heart Crumpets 4s](https://www.waitrose.com/ecom/products/waitrose-4-heart-crumpets/969767-836523-836524)
+    weight: "4 pack",
+    ppu: "37.5p each",
+    quantity: 0,
+    image: "https://ecom-su-static-prod.wtrecom.com/images/products/11/LN_969767_BP_11.jpg",
+    category: "Events",
+    offers: "",
+    order: 10002,
+    score: 0,
+    type: "standard",
+    grouping: null,
+    model: "EVT",
+    productType: "Events",
+  },
+  {
+    id: "EVT-899512",
+    name: "La Vieille Ferme rosé",
+    price: 7.75, // Offer price at Waitrose: £7.75 for 75cl [La Vieille Ferme Rosé 75cl](https://www.waitrose.com/ecom/products/la-vieille-ferme-rose/899512-580400-580401)
+    weight: "75cl",
+    ppu: "£10.33 per litre",
+    quantity: 0,
+    image: "https://ecom-su-static-prod.wtrecom.com/images/products/11/LN_899512_BP_11.jpg",
+    category: "Events",
+    offers: "",
+    order: 10003,
+    score: 0,
+    type: "standard",
+    grouping: null,
+    model: "EVT",
+    productType: "Events",
+  },
+  {
+    id: "EVT-089115",
+    name: "Waitrose Foundation spray carnations",
+    price: 4.0, // £4.00 per bouquet at Waitrose [Waitrose Foundation Spray Carnations](https://www.waitrose.com/ecom/products/waitrose-foundation-spray-carnations/089115-45828-45829)
+    weight: "1 each",
+    ppu: "",
+    quantity: 0,
+    image: "https://ecom-su-static-prod.wtrecom.com/images/products/11/LN_089115_BP_11.jpg",
+    category: "Events",
+    offers: "",
+    order: 10004,
+    score: 0,
+    type: "standard",
+    grouping: null,
+    model: "EVT",
+    productType: "Events",
+  },
+  {
+    id: "EVT-932288",
+    name: "Waitrose 8 heart waffles",
+    price: 3.5, // £3.50 per pack of 8 [Waitrose 8 Heart Waffles 8s](https://www.waitrose.com/ecom/products/waitrose-8-heart-waffles/932288-1-2)
+    weight: "8 pack",
+    ppu: "43.8p per waffle",
+    quantity: 0,
+    image: "https://ecom-su-static-prod.wtrecom.com/images/products/11/LN_932288_BP_11.jpg",
+    category: "Events",
+    offers: "",
+    order: 10005,
+    score: 0,
+    type: "standard",
+    grouping: null,
+    model: "EVT",
+    productType: "Events",
+  },
+  {
+    id: "EVT-063005",
+    name: "Baileys Original Irish Cream Liqueur",
+    price: 13.0, // Typical 70cl price ~£12–£13; using £13.00 as a mid-point [Baileys Original Irish Cream Liqueur 700ml](https://www.waitrose.com/ecom/products/baileys-original-irish-cream-liqueur/063005-31987-31988)
+    weight: "70cl",
+    ppu: "£18.57 per litre",
+    quantity: 0,
+    image: "https://ecom-su-static-prod.wtrecom.com/images/products/11/LN_063005_BP_11.jpg",
+    category: "Events",
+    offers: "",
+    order: 10006,
+    score: 0,
+    type: "standard",
+    grouping: null,
+    model: "EVT",
+    productType: "Events",
+  },
+];
+
 function mapRow(row) {
   const rawType = (row.Type || "").toString().toLowerCase();
   const type =
@@ -78,28 +183,26 @@ export default function App() {
   useEffect(() => {
     async function fetchProducts() {
       const { data, error } = await supabase
-        .from("POP529")
+        .from("POP351")
         .select("*")
         .order("Order", { ascending: true });
 
       if (error || !data || data.length === 0) {
         if (error) console.error("Supabase error:", error.message);
-        setItems(
-          productsJsonFallback.map((p) => ({
-            ...p,
-            model: (p.model || "BBM").toString().toUpperCase(),
-            productType: p.productType || "",
-            type: (p.type || "standard").toString().toLowerCase(),
-            grouping: p.grouping != null ? String(p.grouping) : null,
-          }))
-        );
+        const baseItems = productsJsonFallback.map((p) => ({
+          ...p,
+          model: (p.model || "BBM").toString().toUpperCase(),
+          productType: p.productType || "",
+          type: (p.type || "standard").toString().toLowerCase(),
+          grouping: p.grouping != null ? String(p.grouping) : null,
+        }));
+        setItems([...baseItems, ...EVENT_ITEMS]);
       } else {
-        setItems(
-          data.map(mapRow).map((item) => ({
-            ...item,
-            quantity: item.score >= SCORE_THRESHOLD ? (item.quantity || 1) : 0,
-          }))
-        );
+        const baseItems = data.map(mapRow).map((item) => ({
+          ...item,
+          quantity: item.score >= SCORE_THRESHOLD ? (item.quantity || 1) : 0,
+        }));
+        setItems([...baseItems, ...EVENT_ITEMS]);
       }
       setLoading(false);
     }
@@ -140,6 +243,7 @@ export default function App() {
   const householdVisible = householdFiltered;
 
   const csmItems = items.filter((i) => i.model === "CSM");
+  const eventItems = items.filter((i) => i.model === "EVT");
   const csmOffersNonAlcohol = csmItems.filter(
     (item) =>
       (item.offers || "").toString().trim() !== "" &&
@@ -2892,7 +2996,293 @@ export default function App() {
                 )}
               </div>
 
-              {/* Section 2: Alcohol-related ideas */}
+              {/* Section 2: Make it super special (events) */}
+              {eventItems.length > 0 && (
+                <div style={{ marginBottom: 24 }}>
+                  <h2
+                    style={{
+                      margin: "0 0 4px",
+                      fontSize: 18,
+                      fontWeight: 500,
+                      color: squidInk,
+                    }}
+                  >
+                    Make it super special
+                  </h2>
+                  <div style={{ position: "relative", marginTop: 8 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 12,
+                        overflowX: "auto",
+                        paddingBottom: 12,
+                        scrollSnapType: "x mandatory",
+                      }}
+                    >
+                      {eventItems.slice(0, 15).map((item) => {
+                        const key = String(item.id);
+                        const qty = trolley[key] || 0;
+                        const added = qty > 0;
+
+                        return (
+                          <div
+                            key={item.id}
+                            style={{
+                              flex: "0 0 auto",
+                              width: 220,
+                              backgroundColor: "#fff",
+                              padding: 12,
+                              scrollSnapAlign: "start",
+                              position: "relative",
+                              ...(added
+                                ? {
+                                    borderTop: `2px solid ${successGreen}`,
+                                    borderLeft: `2px solid ${successGreen}`,
+                                    borderRight: `2px solid ${successGreen}`,
+                                    borderBottom: `4px solid ${successGreen}`,
+                                  }
+                                : { border: `1px solid ${oysterGrey}` }),
+                            }}
+                          >
+                            {added && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: -2,
+                                  left: -2,
+                                  right: -2,
+                                  zIndex: 2,
+                                  backgroundColor: "#f1f8e8",
+                                  borderTop: `2px solid ${successGreen}`,
+                                  padding: "5px 10px",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    lineHeight: "20px",
+                                  }}
+                                >
+                                  {qty} in trolley
+                                </span>
+                              </div>
+                            )}
+                            <div style={{ marginTop: added ? 28 : 0 }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: 12,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  style={{
+                                    width: 64,
+                                    height: 64,
+                                    objectFit: "contain",
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div
+                                    style={{
+                                      fontSize: 14,
+                                      fontWeight: 500,
+                                      color: squidInk,
+                                      lineHeight: "20px",
+                                      overflow: "hidden",
+                                      textOverflow: "ellipsis",
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                    }}
+                                  >
+                                    {item.name}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      color: waitroseGrey,
+                                      lineHeight: "18px",
+                                      marginTop: 2,
+                                    }}
+                                  >
+                                    {item.weight}
+                                  </div>
+                                  {item.offers && (
+                                    <div
+                                      style={{
+                                        fontSize: 13,
+                                        fontWeight: 500,
+                                        color: "#a6192e",
+                                        lineHeight: "18px",
+                                        textDecoration: "underline",
+                                        marginTop: 2,
+                                      }}
+                                    >
+                                      {item.offers}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ marginBottom: 8 }}>
+                                <div
+                                  style={{
+                                    fontSize: 16,
+                                    fontWeight: 500,
+                                    color: squidInk,
+                                    lineHeight: "24px",
+                                  }}
+                                >
+                                  £{item.price.toFixed(2)}
+                                </div>
+                                <div
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 300,
+                                    color: squidInk,
+                                    lineHeight: "20px",
+                                  }}
+                                >
+                                  {item.ppu || item.weight}
+                                </div>
+                              </div>
+                              <div>
+                                {added ? (
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      gap: 8,
+                                      alignItems: "stretch",
+                                      width: "100%",
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        flex: 1,
+                                        height: 40,
+                                        border: `1px solid ${squidInk}`,
+                                        backgroundColor: "#fff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 16,
+                                        fontWeight: 500,
+                                        color: squidInk,
+                                      }}
+                                    >
+                                      {qty}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateBelowQty(item.id, qty - 1)
+                                      }
+                                      style={{
+                                        height: 40,
+                                        border: "none",
+                                        backgroundColor: waitroseGrey,
+                                        color: "#fff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        cursor: "pointer",
+                                        padding: "7px 16px",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <svg
+                                        width="16"
+                                        height="2"
+                                        viewBox="0 0 16 2"
+                                        fill="none"
+                                      >
+                                        <rect
+                                          width="16"
+                                          height="2"
+                                          rx="0.5"
+                                          fill="white"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        updateBelowQty(item.id, qty + 1)
+                                      }
+                                      style={{
+                                        height: 40,
+                                        border: "none",
+                                        backgroundColor: waitroseGrey,
+                                        color: "#fff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        cursor: "pointer",
+                                        padding: "7px 16px",
+                                        flexShrink: 0,
+                                      }}
+                                    >
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                      >
+                                        <rect
+                                          x="7"
+                                          y="0"
+                                          width="2"
+                                          height="16"
+                                          rx="0.5"
+                                          fill="white"
+                                        />
+                                        <rect
+                                          x="0"
+                                          y="7"
+                                          width="16"
+                                          height="2"
+                                          rx="0.5"
+                                          fill="white"
+                                        />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      addCsmToTrolleyFromCard(item)
+                                    }
+                                    style={{
+                                      width: "100%",
+                                      height: 40,
+                                      border: `1px solid ${squidInk}`,
+                                      backgroundColor: "#fff",
+                                      fontSize: 16,
+                                      fontWeight: 500,
+                                      color: squidInk,
+                                      cursor: "pointer",
+                                    }}
+                                  >
+                                    Add
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Section 3: Alcohol-related ideas */}
               <div style={{ marginBottom: 24 }}>
                 {csmAlcohol.length > 0 && (
                   <>
