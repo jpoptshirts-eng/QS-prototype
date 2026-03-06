@@ -5163,20 +5163,14 @@ export default function App() {
             </div>
 
             <button type="button"
-              onClick={() => {
-                clearTrolley();
-                setItems((prev) => prev.map((p) => ({ ...p, quantity: p.score >= SCORE_THRESHOLD ? (p.quantity || 1) : 0 })));
-                setPage("favourites");
-                setCheckoutStep("trolley");
-                window.scrollTo(0, 0);
-              }}
+              onClick={() => window.open("https://ows.io/os/8w5nzah9", "_blank", "noopener,noreferrer")}
               style={{
                 width: "100%", height: 48, border: "none",
                 backgroundColor: green, color: "#fff",
                 fontSize: 16, fontWeight: 400, lineHeight: "24px",
                 cursor: "pointer", marginBottom: 10,
               }}>
-              Back to Favourites
+              Card sorting exercise
             </button>
           </div>
         )}
