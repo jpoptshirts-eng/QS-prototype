@@ -296,9 +296,9 @@ export default function App() {
       }
     });
 
-    // Remove any groups that never got a single/double type
+    // Keep groups with 2+ items (standard groups stay; single/double already set)
     Object.keys(groups).forEach((key) => {
-      if (groups[key].type === "standard" || groups[key].items.length < 2) {
+      if (groups[key].items.length < 2) {
         delete groups[key];
       }
     });
@@ -437,9 +437,11 @@ export default function App() {
 
   useEffect(() => {
     if (!snackbar) return;
+    // On step 2 (Food & Drink) keep snackbar visible; elsewhere auto-dismiss after 3s
+    if (page === "fooddrink") return;
     const timer = setTimeout(() => setSnackbar(""), 3000);
     return () => clearTimeout(timer);
-  }, [snackbar]);
+  }, [snackbar, page]);
 
   const navigateToItem = (id) => {
     setScrollToId(id);
@@ -2290,12 +2292,10 @@ export default function App() {
                       marginBottom: 8,
                     }}
                   >
-                    All items added to trolley
+                    All top regulars are already in your trolley
                   </div>
                   <div style={{ fontSize: 14, lineHeight: "22px" }}>
-                    All your regular items have been added.
-                    <br />
-                    Head to your trolley to review and checkout.
+                    Continue to Food &amp; Drink to complete your Quick Shop.
                   </div>
                 </div>
               ) : view === "grid" ? (
@@ -2834,18 +2834,22 @@ export default function App() {
                   const isExpanded = groupKey ? !!expandedGroups[groupKey] : false;
 
                   const collapsedVisibleCount = group
-                    ? type === "double"
-                      ? 2
-                      : 1
+                    ? type === "standard"
+                      ? groupedItems.length
+                      : type === "double"
+                        ? 2
+                        : 1
                     : 0;
                   const itemsToRender = !group
                     ? [item]
-                    : isExpanded
+                    : type === "standard"
                       ? groupedItems
-                      : groupedItems.slice(0, collapsedVisibleCount);
+                      : isExpanded
+                        ? groupedItems
+                        : groupedItems.slice(0, collapsedVisibleCount);
                   const totalCount = group ? groupedItems.length : 0;
-                  const moreCount = group ? Math.max(totalCount - collapsedVisibleCount, 0) : 0;
-                  const canToggle = group && moreCount > 0;
+                  const moreCount = group && type !== "standard" ? Math.max(totalCount - collapsedVisibleCount, 0) : 0;
+                  const canToggle = group && type !== "standard" && moreCount > 0;
 
                   return (
                     <div
