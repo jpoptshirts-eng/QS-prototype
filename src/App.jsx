@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase } from "./supabaseClient";
 import productsJsonFallback from "./products.json";
+import mdHeroRoast from "../Images/md-hero-roast.png";
+import mdAllMothersDay from "../Images/md-all-mothers-day.png";
+import mdOffersMothersDay from "../Images/md-offers-mothers-day.png";
+import mdHealthBeauty from "../Images/md-health-beauty.png";
+import mdGoodies from "../Images/md-goodies.png";
 
 const green = "#5b8226";
 const successGreen = "#78be20";
@@ -152,7 +157,7 @@ function mapRow(row) {
 }
 
 export default function App() {
-  const [page, setPage] = useState("favourites");
+  const [page, setPage] = useState("groceries");
   const [view, setView] = useState("grid");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -163,6 +168,7 @@ export default function App() {
   const [offersOnlyHousehold, setOffersOnlyHousehold] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState("trolley");
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [snackbar, setSnackbar] = useState("");
   const scrollAttemptRef = useRef(null);
   const carouselRef = useRef(null);
   const ctaTimerRef = useRef(null);
@@ -267,17 +273,41 @@ export default function App() {
 
   const buildGroupMeta = (arr) => {
     const groups = {};
+
     arr.forEach((item) => {
       const key = item.grouping;
-      const type = (item.type || "standard").toLowerCase();
-      if (!key || (type !== "single" && type !== "double")) return;
-      if (!groups[key]) groups[key] = { type, items: [] };
+      if (!key) return;
+
+      const itemType = (item.type || "standard").toLowerCase();
+      if (!groups[key]) {
+        groups[key] = {
+          // default; will be updated if we see a single/double item
+          type: "standard",
+          items: [],
+        };
+      }
+
+      // Always include the item in the group so no grouped rows are lost
       groups[key].items.push(item);
+
+      // If this row explicitly defines a grouping variant, use it
+      if (itemType === "single" || itemType === "double") {
+        groups[key].type = itemType;
+      }
     });
+
+    // Remove any groups that never got a single/double type
+    Object.keys(groups).forEach((key) => {
+      if (groups[key].type === "standard" || groups[key].items.length < 2) {
+        delete groups[key];
+      }
+    });
+
     Object.values(groups).forEach((g) => {
       g.items.sort((a, b) => (a.order || 0) - (b.order || 0));
       g.primaryId = g.items[0].id;
     });
+
     return groups;
   };
 
@@ -405,6 +435,12 @@ export default function App() {
     return () => clearTimeout(ctaTimerRef.current);
   }, []);
 
+  useEffect(() => {
+    if (!snackbar) return;
+    const timer = setTimeout(() => setSnackbar(""), 3000);
+    return () => clearTimeout(timer);
+  }, [snackbar]);
+
   const navigateToItem = (id) => {
     setScrollToId(id);
     setView("list");
@@ -419,6 +455,19 @@ export default function App() {
   const navigateToGridView = () => {
     setView("grid");
     setPage("quickshop");
+    window.scrollTo(0, 0);
+  };
+
+  const navigateJourneyStep = (stepNumber) => {
+    if (stepNumber === 1) {
+      setPage("quickshop");
+    } else if (stepNumber === 2) {
+      setPage("fooddrink");
+    } else if (stepNumber === 3) {
+      setPage("household");
+    } else if (stepNumber === 4) {
+      setPage("inspiration");
+    }
     window.scrollTo(0, 0);
   };
 
@@ -488,7 +537,23 @@ export default function App() {
               borderBottom: `1px solid ${oysterGrey}`,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div
+              onClick={() => {
+                // Reset prototype back to beginning (Groceries)
+                setPage("groceries");
+                setView("grid");
+                setCheckoutStep("trolley");
+                setOffersOnlyFood(false);
+                setOffersOnlyHousehold(false);
+                setScrollToId(null);
+                setSnackbar("");
+                setCtaState("idle");
+                setExpandedGroups({});
+                setTrolley({});
+                window.scrollTo(0, 0);
+              }}
+              style={{ display: "flex", flexDirection: "column", cursor: "pointer" }}
+            >
               <span
                 style={{
                   fontSize: 16,
@@ -580,68 +645,70 @@ export default function App() {
           </div>
         </div>
 
-        {/* ── Tab bar ── */}
-        <div
-          style={{
-            position: "relative",
-            overflow: "hidden",
-            backgroundColor: "#fff",
-          }}
-        >
-          <div style={{ display: "flex", overflowX: "auto" }}>
-            {tabs.map((label) => {
-              const isQsPage = page === "quickshop" || page === "fooddrink" || page === "household";
-              const active =
-                (label === "Favourites" && page === "favourites") ||
-                (label === "Quick Shop" && isQsPage);
-              return (
-                <div
-                  key={label}
-                  onClick={() => handleTabClick(label)}
-                  style={{
-                    flex: "0 0 auto",
-                    height: 52,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "0 20px",
-                    whiteSpace: "nowrap",
-                    fontSize: 16,
-                    fontWeight: 500,
-                    color: squidInk,
-                    borderBottom: active
-                      ? `2px solid ${squidInk}`
-                      : `2px solid ${oysterGrey}`,
-                    cursor: "pointer",
-                  }}
-                >
-                  {label}
-                </div>
-              );
-            })}
-          </div>
+        {/* ── Tab bar (not shown on Groceries entry page) ── */}
+        {page !== "groceries" && (
           <div
             style={{
-              position: "absolute",
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 48,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-end",
-              paddingRight: 16,
-              background:
-                "linear-gradient(to right, rgba(255,255,255,0), #fff 60%)",
-              pointerEvents: "none",
+              position: "relative",
+              overflow: "hidden",
+              backgroundColor: "#fff",
             }}
           >
-            <span style={{ fontSize: 12, color: squidInk }}>›</span>
+            <div style={{ display: "flex", overflowX: "auto" }}>
+              {tabs.map((label) => {
+                const isQsPage = page === "quickshop" || page === "fooddrink" || page === "household";
+                const active =
+                  (label === "Favourites" && page === "favourites") ||
+                  (label === "Quick Shop" && isQsPage);
+                return (
+                  <div
+                    key={label}
+                    onClick={() => handleTabClick(label)}
+                    style={{
+                      flex: "0 0 auto",
+                      height: 52,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 20px",
+                      whiteSpace: "nowrap",
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: squidInk,
+                      borderBottom: active
+                        ? `2px solid ${squidInk}`
+                        : `2px solid ${oysterGrey}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {label}
+                  </div>
+                );
+              })}
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 48,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                paddingRight: 16,
+                background:
+                  "linear-gradient(to right, rgba(255,255,255,0), #fff 60%)",
+                pointerEvents: "none",
+              }}
+            >
+              <span style={{ fontSize: 12, color: squidInk }}>›</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* ── Journey progress indicator ── */}
-        {page !== "favourites" && currentJourneyStep > 0 && (
+        {/* ── Journey progress indicator (not on Groceries or Favourites) ── */}
+        {page !== "favourites" && page !== "groceries" && currentJourneyStep > 0 && (
           <div
             style={{
               padding: "8px 16px 4px",
@@ -674,6 +741,7 @@ export default function App() {
                     )}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <div
+                        onClick={() => navigateJourneyStep(stepNumber)}
                         style={{
                           width: 24,
                           height: 24,
@@ -692,6 +760,7 @@ export default function App() {
                           color: isComplete || isCurrent ? "#fff" : squidInk,
                           fontSize: 12,
                           fontWeight: 500,
+                          cursor: "pointer",
                         }}
                       >
                         {isComplete ? (
@@ -724,6 +793,718 @@ export default function App() {
               })}
             </div>
           </div>
+        )}
+
+        {/* ═══════════════ GROCERIES PAGE (ENTRY) ═══════════════ */}
+        {page === "groceries" && (
+          <>
+            {/* Promo strip */}
+            <div
+              style={{
+                backgroundColor: green,
+                color: "#fff",
+                padding: "8px 16px",
+                fontSize: 14,
+                lineHeight: "20px",
+                textAlign: "center",
+              }}
+            >
+              3 for £12 BBQ mix &amp; match{" "}
+              <span style={{ textDecoration: "underline", fontWeight: 500 }}>
+                Shop now
+              </span>
+            </div>
+
+            {/* Title section */}
+            <div
+              style={{
+                padding: "24px 16px 20px",
+                textAlign: "center",
+                backgroundColor: "#fff",
+              }}
+            >
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 20,
+                  fontWeight: 500,
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                  color: squidInk,
+                }}
+              >
+                Shop for your groceries online
+              </h1>
+              <div
+                style={{
+                  width: 40,
+                  height: 2,
+                  backgroundColor: squidInk,
+                  margin: "16px auto",
+                }}
+              />
+
+              {/* Icon grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  rowGap: 24,
+                  columnGap: 8,
+                  marginTop: 24,
+                }}
+              >
+                {[
+                  { label: "Book a slot", icon: "📅" },
+                  { label: "My orders", icon: "📄" },
+                  { label: "Favourites", icon: "♥" },
+                  { label: "Recipes", icon: "👨‍🍳" },
+                  { label: "Offers", icon: "£" },
+                  { label: "My Waitrose", icon: "💳" },
+                ].map((item) => {
+                  const isFavouritesIcon = item.label === "Favourites";
+                  return (
+                    <div
+                      key={item.label}
+                      onClick={
+                        isFavouritesIcon
+                          ? () => {
+                              setPage("favourites");
+                              window.scrollTo(0, 0);
+                            }
+                          : undefined
+                      }
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 6,
+                        cursor: isFavouritesIcon ? "pointer" : "default",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          border: `1px solid ${oysterGrey}`,
+                          backgroundColor: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 20,
+                        }}
+                      >
+                        <span>{item.icon}</span>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: 14,
+                          color: squidInk,
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Quick Shop card ── */}
+            <div style={{ padding: "16px 16px 24px", backgroundColor: "#fff" }}>
+              <div
+                style={{
+                  border: `1px solid ${oysterGrey}`,
+                  backgroundColor: "#fff",
+                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                }}
+              >
+                {/* Card header */}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 24,
+                    alignItems: "baseline",
+                    fontSize: 16,
+                    fontWeight: 500,
+                    color: squidInk,
+                    lineHeight: "24px",
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    Quick Shop your regulars
+                  </span>
+                  <span
+                    onClick={navigateToGridView}
+                    style={{
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    View more
+                  </span>
+                </div>
+
+                {/* Carousel */}
+                <div style={{ position: "relative", overflow: "hidden" }}>
+                  <div
+                    ref={carouselRef}
+                    onScroll={updateCarouselArrows}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      overflowX: "auto",
+                      scrollSnapType: "x mandatory",
+                      scrollbarWidth: "none",
+                      msOverflowStyle: "none",
+                    }}
+                  >
+                    {quickShopItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => navigateToItem(item.id)}
+                        style={{
+                          flex: "0 0 auto",
+                          width: 80,
+                          height: 80,
+                          position: "relative",
+                          border: "none",
+                          backgroundColor: "#fff",
+                          cursor: "pointer",
+                          padding: 16,
+                          scrollSnapAlign: "start",
+                          overflow: "visible",
+                        }}
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "contain",
+                          }}
+                        />
+                        {item.quantity > 0 && (
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: 20,
+                              height: 20,
+                              borderRadius: 32,
+                              backgroundColor: green,
+                              color: "#fff",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 14,
+                              fontWeight: 500,
+                              lineHeight: "20px",
+                              letterSpacing: "2.8px",
+                              textTransform: "uppercase",
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.quantity}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {carouselCanScrollLeft && (
+                    <div
+                      onClick={() => {
+                        if (carouselRef.current) {
+                          carouselRef.current.scrollBy({ left: -200, behavior: "smooth" });
+                        }
+                      }}
+                      style={{
+                        position: "absolute",
+                        left: 0, top: 0, bottom: 0,
+                        paddingRight: 48, paddingLeft: 16,
+                        display: "flex", alignItems: "center",
+                        background: "linear-gradient(to left, rgba(255,255,255,0), #fff 27%)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M7.5 2L3.5 6L7.5 10" stroke={squidInk} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  )}
+                  {carouselCanScrollRight && (
+                    <div
+                      onClick={() => {
+                        if (carouselRef.current) {
+                          carouselRef.current.scrollBy({ left: 200, behavior: "smooth" });
+                        }
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: 0, top: 0, bottom: 0,
+                        paddingLeft: 48, paddingRight: 16,
+                        display: "flex", alignItems: "center",
+                        background: "linear-gradient(to right, rgba(255,255,255,0), #fff 27%)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M4.5 2L8.5 6L4.5 10" stroke={squidInk} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* Scrollbar track */}
+                <div style={{ width: "100%", height: 8, backgroundColor: oysterGrey }}>
+                  <div
+                    style={{
+                      height: "100%",
+                      width: `${Math.max(Math.min((count / Math.max(quickShopItems.length, 1)) * 100, 100), 25)}%`,
+                      backgroundColor: waitroseGrey,
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+
+                {/* CTA button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (qsAllInTrolley && ctaState === "idle") {
+                      setPage("fooddrink");
+                      window.scrollTo(0, 0);
+                    } else {
+                      const addedCount = count;
+                      addToTrolley();
+                      if (addedCount > 0) {
+                        setSnackbar(
+                          `${addedCount} item${addedCount === 1 ? "" : "s"} added to trolley`
+                        );
+                      }
+                      setTimeout(() => {
+                        setPage("fooddrink");
+                        window.scrollTo(0, 0);
+                      }, 1200);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    height: 40,
+                    border: "none",
+                    backgroundColor:
+                      ctaState === "success" ? successGreen : waitroseGrey,
+                    color: "#fff",
+                    fontSize: 16,
+                    fontWeight: 400,
+                    lineHeight: "24px",
+                    cursor: ctaState === "success" ? "default" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    transition: "background-color 0.3s ease",
+                  }}
+                >
+                  {ctaState === "success" ? (
+                    <>
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10.5L8 14.5L16 6.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Added to trolley
+                    </>
+                  ) : qsAllInTrolley ? (
+                    "Continue to Top regulars"
+                  ) : (
+                    `Add ${count} items to trolley and continue`
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Last order summary */}
+            <div style={{ padding: "0 16px 24px", backgroundColor: "#fff" }}>
+              <div
+                style={{
+                  border: `1px solid ${oysterGrey}`,
+                  backgroundColor: "#fafafa",
+                  padding: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      backgroundColor: successGreen,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M3 8.5L6.5 12L13 4"
+                        stroke="white"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: squidInk,
+                        lineHeight: "20px",
+                      }}
+                    >
+                      Your last order
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 14,
+                        color: waitroseGrey,
+                        lineHeight: "20px",
+                      }}
+                    >
+                      Saturday 13 December
+                    </span>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: 16,
+                    fontWeight: 500,
+                    color: squidInk,
+                  }}
+                >
+                  £63.60
+                </span>
+              </div>
+              <div
+                style={{
+                  textAlign: "right",
+                  fontSize: 14,
+                  color: squidInk,
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                }}
+              >
+                View all previous orders
+              </div>
+            </div>
+
+            {/* Mother's Day banners */}
+            <div
+              style={{
+                padding: "0 16px 32px",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              {/* Hero banner */}
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 12,
+                  backgroundColor: "#ffccbf",
+                  padding: 16,
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                  <div
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 500,
+                      color: "#c4401e",
+                      lineHeight: "26px",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Say it with... a roast
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: squidInk,
+                      lineHeight: "20px",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Save on British beef and sides for Mother's Day.
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "#c4401e",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Shop offer
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: 120,
+                    height: 100,
+                    overflow: "hidden",
+                    borderRadius: 4,
+                  }}
+                >
+                  <img
+                    src={mdHeroRoast}
+                    alt="Mother's Day roast"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 2x2 banner grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                }}
+              >
+                {/* All Mother's Day */}
+                <div
+                  style={{
+                    backgroundColor: "#ffccbf",
+                    padding: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 80,
+                      marginBottom: 10,
+                      overflow: "hidden",
+                      borderRadius: 4,
+                    }}
+                  >
+                    <img
+                      src={mdAllMothersDay}
+                      alt="All Mother's Day"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: "#c4401e",
+                      marginBottom: 4,
+                    }}
+                  >
+                    All Mother's Day
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#c4401e",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Shop now
+                  </div>
+                </div>
+
+                {/* Offers Mother's Day */}
+                <div
+                  style={{
+                    backgroundColor: "#ffccbf",
+                    padding: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 80,
+                      marginBottom: 10,
+                      overflow: "hidden",
+                      borderRadius: 4,
+                    }}
+                  >
+                    <img
+                      src={mdOffersMothersDay}
+                      alt="Offers for Mother's Day"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: "#c4401e",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Offers<br />Mother's Day
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#c4401e",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Shop now
+                  </div>
+                </div>
+
+                {/* Health & beauty */}
+                <div
+                  style={{
+                    backgroundColor: "#ffccbf",
+                    padding: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 80,
+                      marginBottom: 10,
+                      overflow: "hidden",
+                      borderRadius: 4,
+                    }}
+                  >
+                    <img
+                      src={mdHealthBeauty}
+                      alt="Health and beauty gifts"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: squidInk,
+                      marginBottom: 2,
+                    }}
+                  >
+                    Up to half price
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: "#c4401e",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Health &amp; beauty
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#c4401e",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Shop now
+                  </div>
+                </div>
+
+                {/* Mother's Day goodies */}
+                <div
+                  style={{
+                    backgroundColor: "#ffccbf",
+                    padding: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 80,
+                      marginBottom: 10,
+                      overflow: "hidden",
+                      borderRadius: 4,
+                    }}
+                  >
+                    <img
+                      src={mdGoodies}
+                      alt="Mother's Day goodies"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: "#c4401e",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Mother's Day goodies
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#c4401e",
+                      textDecoration: "underline",
+                      cursor: "pointer",
+                    }}
+                  >
+                    See recipes
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* ═══════════════ FAVOURITES PAGE ═══════════════ */}
@@ -914,15 +1695,26 @@ export default function App() {
                       }}
                       style={{
                         position: "absolute",
-                        left: 0, top: 0, bottom: 0,
-                        paddingRight: 48, paddingLeft: 16,
-                        display: "flex", alignItems: "center",
-                        background: "linear-gradient(to left, rgba(255,255,255,0), #fff 27%)",
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        paddingRight: 48,
+                        paddingLeft: 16,
+                        display: "flex",
+                        alignItems: "center",
+                        background:
+                          "linear-gradient(to left, rgba(255,255,255,0), #fff 27%)",
                         cursor: "pointer",
                       }}
                     >
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M7.5 2L3.5 6L7.5 10" stroke={squidInk} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M7.5 2L3.5 6L7.5 10"
+                          stroke={squidInk}
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     </div>
                   )}
@@ -935,15 +1727,26 @@ export default function App() {
                       }}
                       style={{
                         position: "absolute",
-                        right: 0, top: 0, bottom: 0,
-                        paddingLeft: 48, paddingRight: 16,
-                        display: "flex", alignItems: "center",
-                        background: "linear-gradient(to right, rgba(255,255,255,0), #fff 27%)",
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        paddingLeft: 48,
+                        paddingRight: 16,
+                        display: "flex",
+                        alignItems: "center",
+                        background:
+                          "linear-gradient(to right, rgba(255,255,255,0), #fff 27%)",
                         cursor: "pointer",
                       }}
                     >
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M4.5 2L8.5 6L4.5 10" stroke={squidInk} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M4.5 2L8.5 6L4.5 10"
+                          stroke={squidInk}
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     </div>
                   )}
@@ -954,7 +1757,10 @@ export default function App() {
                   <div
                     style={{
                       height: "100%",
-                      width: `${Math.max(Math.min((count / Math.max(quickShopItems.length, 1)) * 100, 100), 25)}%`,
+                      width: `${Math.max(
+                        Math.min((count / Math.max(quickShopItems.length, 1)) * 100, 100),
+                        25
+                      )}%`,
                       backgroundColor: waitroseGrey,
                       transition: "width 0.3s ease",
                     }}
@@ -969,7 +1775,17 @@ export default function App() {
                       setPage("fooddrink");
                       window.scrollTo(0, 0);
                     } else {
+                      const addedCount = count;
                       addToTrolley();
+                      if (addedCount > 0) {
+                        setSnackbar(
+                          `${addedCount} item${addedCount === 1 ? "" : "s"} added to trolley`
+                        );
+                      }
+                      setTimeout(() => {
+                        setPage("fooddrink");
+                        window.scrollTo(0, 0);
+                      }, 1200);
                     }
                   }}
                   style={{
@@ -993,12 +1809,18 @@ export default function App() {
                   {ctaState === "success" ? (
                     <>
                       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M4 10.5L8 14.5L16 6.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M4 10.5L8 14.5L16 6.5"
+                          stroke="white"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                       Added to trolley
                     </>
                   ) : qsAllInTrolley ? (
-                    "Next step"
+                    "Continue to Food & drink"
                   ) : (
                     `Add ${count} items to trolley and continue`
                   )}
@@ -1876,7 +2698,7 @@ export default function App() {
                   height: 48,
                   border: "none",
                   backgroundColor:
-                    ctaState === "success" ? successGreen : green,
+                    ctaState === "success" ? successGreen : waitroseGrey,
                   color: "#fff",
                   fontSize: 16,
                   fontWeight: 400,
@@ -1908,7 +2730,7 @@ export default function App() {
                     Added to trolley
                   </>
                 ) : qsAllInTrolley ? (
-                  "Next step"
+                  "Continue to Food & drink"
                 ) : (
                   `Add ${count} selected items to trolley & continue`
                 )}
@@ -1920,6 +2742,22 @@ export default function App() {
         {/* ═══════════════ FOOD & DRINK PAGE ═══════════════ */}
         {page === "fooddrink" && (
           <>
+            {snackbar && (
+              <div
+                style={{
+                  margin: "8px 16px 0",
+                  padding: "8px 12px",
+                  borderRadius: 4,
+                  backgroundColor: "#f1f8e8",
+                  border: `1px solid ${successGreen}`,
+                  color: squidInk,
+                  fontSize: 14,
+                  lineHeight: "20px",
+                }}
+              >
+                {snackbar}
+              </div>
+            )}
             <div style={{ padding: "24px 16px 0", textAlign: "center", backgroundColor: "#fff" }}>
               <h1
                 style={{
@@ -2387,7 +3225,7 @@ export default function App() {
                   width: "100%",
                   height: 48,
                   border: "none",
-                  backgroundColor: green,
+                  backgroundColor: waitroseGrey,
                   color: "#fff",
                   fontSize: 16,
                   fontWeight: 400,
@@ -2395,7 +3233,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                Next step
+                Continue to Household
               </button>
             </div>
           </>
@@ -2605,13 +3443,6 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    {!added && (
-                      <div style={{ position: "absolute", top: 2, right: 2, width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                        <svg width="20" height="18" viewBox="0 0 20 18" fill="none">
-                          <path d="M10 17.07L8.58 15.78C3.4 11.07 0 8.01 0 4.31C0 1.25 2.42 -0.09 5 0.81C6.54 1.34 7.67 2.38 8.58 3.6L10 5.5L11.42 3.6C12.33 2.38 13.46 1.34 15 0.81C17.58 -0.09 20 1.25 20 4.31C20 8.01 16.6 11.07 11.42 15.78L10 17.07Z" stroke={squidInk} strokeWidth="1.5" fill="none" />
-                        </svg>
-                      </div>
-                    )}
                   </div>
                   );
                 })}
@@ -2642,7 +3473,7 @@ export default function App() {
                   width: "100%",
                   height: 48,
                   border: "none",
-                  backgroundColor: green,
+                  backgroundColor: waitroseGrey,
                   color: "#fff",
                   fontSize: 16,
                   fontWeight: 400,
@@ -2650,7 +3481,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                Next step
+                Continue to Meals & ideas
               </button>
             </div>
           </>
@@ -3769,7 +4600,7 @@ export default function App() {
                   width: "100%",
                   height: 48,
                   border: "none",
-                  backgroundColor: green,
+                  backgroundColor: waitroseGrey,
                   color: "#fff",
                   fontSize: 16,
                   fontWeight: 400,
@@ -4246,7 +5077,7 @@ export default function App() {
                 onClick={() => { setCheckoutStep("confirmation"); window.scrollTo(0, 0); }}
                 style={{
                   width: "100%", height: 48, border: "none",
-                  backgroundColor: green, color: "#fff",
+                  backgroundColor: waitroseGrey, color: "#fff",
                   fontSize: 16, fontWeight: 400, lineHeight: "24px",
                   cursor: "pointer",
                 }}>
