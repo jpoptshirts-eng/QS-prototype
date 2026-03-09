@@ -174,6 +174,9 @@ export default function App() {
   const ctaTimerRef = useRef(null);
   const [carouselCanScrollLeft, setCarouselCanScrollLeft] = useState(false);
   const [carouselCanScrollRight, setCarouselCanScrollRight] = useState(true);
+  const [isNarrowMobile, setIsNarrowMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 360 : false
+  );
 
   const updateCarouselArrows = () => {
     const el = carouselRef.current;
@@ -185,6 +188,12 @@ export default function App() {
   useEffect(() => {
     requestAnimationFrame(updateCarouselArrows);
   }, [items, page]);
+
+  useEffect(() => {
+    const onResize = () => setIsNarrowMobile(window.innerWidth < 360);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -2236,15 +2245,15 @@ export default function App() {
               </div>
             )}
 
-            {/* Sticky stats bar + view toggle */}
+            {/* Sticky estimated total bar + CTA + view toggle */}
             <div
               style={{
                 position: "sticky",
                 top: 50,
                 zIndex: 19,
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
+                flexDirection: "column",
+                gap: 10,
                 padding: "12px 16px",
                 borderTop: `1px solid ${oysterGrey}`,
                 borderBottom: `1px solid ${oysterGrey}`,
@@ -2253,48 +2262,106 @@ export default function App() {
                 color: squidInk,
               }}
             >
-              <div style={{ fontWeight: 500 }}>
-                Estimated total: £{total.toFixed(2)} ({count})
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ fontWeight: 500 }}>
+                  Estimated total: £{total.toFixed(2)} ({count})
+                </div>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => setView("grid")}
+                    aria-label="Grid view"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      opacity: view === "grid" ? 1 : 0.35,
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="8" height="8" rx="1" fill={squidInk} />
+                      <rect x="13" y="3" width="8" height="8" rx="1" fill={squidInk} />
+                      <rect x="3" y="13" width="8" height="8" rx="1" fill={squidInk} />
+                      <rect x="13" y="13" width="8" height="8" rx="1" fill={squidInk} />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("list")}
+                    aria-label="List view"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      opacity: view === "list" ? 1 : 0.35,
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="4" width="18" height="2.5" rx="0.5" fill={squidInk} />
+                      <rect x="3" y="10.75" width="18" height="2.5" rx="0.5" fill={squidInk} />
+                      <rect x="3" y="17.5" width="18" height="2.5" rx="0.5" fill={squidInk} />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={() => setView("grid")}
-                  aria-label="Grid view"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    opacity: view === "grid" ? 1 : 0.35,
-                  }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="3" width="8" height="8" rx="1" fill={squidInk} />
-                    <rect x="13" y="3" width="8" height="8" rx="1" fill={squidInk} />
-                    <rect x="3" y="13" width="8" height="8" rx="1" fill={squidInk} />
-                    <rect x="13" y="13" width="8" height="8" rx="1" fill={squidInk} />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setView("list")}
-                  aria-label="List view"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    cursor: "pointer",
-                    opacity: view === "list" ? 1 : 0.35,
-                  }}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="4" width="18" height="2.5" rx="0.5" fill={squidInk} />
-                    <rect x="3" y="10.75" width="18" height="2.5" rx="0.5" fill={squidInk} />
-                    <rect x="3" y="17.5" width="18" height="2.5" rx="0.5" fill={squidInk} />
-                  </svg>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (qsAllInTrolley && ctaState === "idle") {
+                    setPage("fooddrink");
+                    window.scrollTo(0, 0);
+                  } else {
+                    addToTrolley();
+                    setTimeout(() => {
+                      setPage("fooddrink");
+                      window.scrollTo(0, 0);
+                    }, 1200);
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  height: 48,
+                  border: "none",
+                  backgroundColor:
+                    ctaState === "success" ? successGreen : waitroseGrey,
+                  color: "#fff",
+                  fontSize: 16,
+                  fontWeight: 400,
+                  lineHeight: "24px",
+                  cursor: ctaState === "success" ? "default" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                {ctaState === "success" ? (
+                  <>
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                    >
+                      <path
+                        d="M4 10.5L8 14.5L16 6.5"
+                        stroke="white"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Added to trolley
+                  </>
+                ) : qsAllInTrolley ? (
+                  "Continue to Food & drink"
+                ) : (
+                  `Add ${count} ${isNarrowMobile ? "" : "selected "}items to trolley & continue`
+                )}
+              </button>
             </div>
 
             {/* Product feed */}
@@ -2699,78 +2766,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Fixed footer CTA */}
-            <div
-              style={{
-                position: "fixed",
-                left: "50%",
-                transform: "translateX(-50%)",
-                bottom: 0,
-                width: "100%",
-                maxWidth: 767,
-                padding: "12px 16px",
-                backgroundColor: "#fff",
-                borderTop: `1px solid ${oysterGrey}`,
-                zIndex: 20,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  if (qsAllInTrolley && ctaState === "idle") {
-                    setPage("fooddrink");
-                    window.scrollTo(0, 0);
-                  } else {
-                    addToTrolley();
-                    setTimeout(() => {
-                      setPage("fooddrink");
-                      window.scrollTo(0, 0);
-                    }, 1200);
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  height: 48,
-                  border: "none",
-                  backgroundColor:
-                    ctaState === "success" ? successGreen : waitroseGrey,
-                  color: "#fff",
-                  fontSize: 16,
-                  fontWeight: 400,
-                  lineHeight: "24px",
-                  cursor: ctaState === "success" ? "default" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                {ctaState === "success" ? (
-                  <>
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                    >
-                      <path
-                        d="M4 10.5L8 14.5L16 6.5"
-                        stroke="white"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Added to trolley
-                  </>
-                ) : qsAllInTrolley ? (
-                  "Continue to Food & drink"
-                ) : (
-                  `Add ${count} selected items to trolley & continue`
-                )}
-              </button>
-            </div>
           </>
         )}
 
