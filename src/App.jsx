@@ -198,7 +198,7 @@ export default function App() {
   useEffect(() => {
     async function fetchProducts() {
       const { data, error } = await supabase
-        .from("POP074")
+        .from("POP038")
         .select("*")
         .order("Order", { ascending: true });
 
@@ -732,7 +732,7 @@ export default function App() {
                 { label: "Top regulars" },
                 { label: "Food & drink" },
                 { label: "Household" },
-                { label: "Meals & ideas" },
+                { label: "Inspiration & ideas" },
               ].map((step, index) => {
                 const stepNumber = index + 1;
                 const isComplete = stepNumber < currentJourneyStep;
@@ -3226,7 +3226,7 @@ export default function App() {
                           </span>
                           {isExpanded
                             ? "View less"
-                            : `View ${moreCount} more item${moreCount === 1 ? "" : "s"}`}
+                            : `Show ${moreCount} similar item${moreCount === 1 ? "" : "s"}`}
                         </button>
                       )}
                     </div>
@@ -3515,7 +3515,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                Continue to Meals & ideas
+                Continue to Inspiration & ideas
               </button>
             </div>
           </>
@@ -3541,7 +3541,7 @@ export default function App() {
                   color: squidInk,
                 }}
               >
-                Meals & ideas
+                Inspiration & ideas
               </h1>
               <div
                 style={{
