@@ -198,7 +198,7 @@ export default function App() {
   useEffect(() => {
     async function fetchProducts() {
       const { data, error } = await supabase
-        .from("POP038")
+        .from("POP072")
         .select("*")
         .order("Order", { ascending: true });
 
