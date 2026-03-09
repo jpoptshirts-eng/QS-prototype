@@ -915,16 +915,17 @@ export default function App() {
 
             {/* ── Quick Shop card ── */}
             <div style={{ padding: "16px 16px 24px", backgroundColor: "#fff" }}>
-              <div
-                style={{
-                  border: `1px solid ${oysterGrey}`,
-                  backgroundColor: "#fff",
-                  padding: 16,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 12,
-                }}
-              >
+              {!qsAllInTrolley ? (
+                <div
+                  style={{
+                    border: `1px solid ${oysterGrey}`,
+                    backgroundColor: "#fff",
+                    padding: 16,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
+                  }}
+                >
                 {/* Card header */}
                 <div
                   style={{
@@ -1130,7 +1131,44 @@ export default function App() {
                     `Add ${count} items to trolley and continue`
                   )}
                 </button>
-              </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    border: `1px solid ${oysterGrey}`,
+                    backgroundColor: "#fff",
+                    textAlign: "center",
+                    padding: "40px 16px",
+                    color: waitroseGrey,
+                  }}
+                >
+                  <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    style={{ marginBottom: 16 }}
+                  >
+                    <path
+                      d="M4 10.5L8 14.5L16 6.5"
+                      stroke={green}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 500,
+                      color: squidInk,
+                      marginBottom: 8,
+                    }}
+                  >
+                    All top regulars are already in your trolley
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Last order summary */}
@@ -2293,9 +2331,6 @@ export default function App() {
                     }}
                   >
                     All top regulars are already in your trolley
-                  </div>
-                  <div style={{ fontSize: 14, lineHeight: "22px" }}>
-                    Continue to Food &amp; Drink to complete your Quick Shop.
                   </div>
                 </div>
               ) : view === "grid" ? (
@@ -4596,8 +4631,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => {
-                  setPage("trolley");
-                  setCheckoutStep("trolley");
+                  setPage("groceries");
                   window.scrollTo(0, 0);
                 }}
                 style={{
@@ -4612,7 +4646,7 @@ export default function App() {
                   cursor: "pointer",
                 }}
               >
-                Review trolley
+                Continue shopping
               </button>
             </div>
           </>
